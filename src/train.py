@@ -23,14 +23,14 @@ def main():
     train_data = data[:n]
     val_data = data[n:]
 
-    torch.manual_seed(43579)
     batch_size = 4  # how many independent sequences will we process in parallel?
     block_size = 8  # what is the maximum context length for predictions?
 
     xb, yb = get_batch(batch_size, block_size, train_data)
     m = BigramLanguageModel(len(vocab))
-    out = m(xb, yb)
-    print(out.shape)
+    logits, loss = m(xb, yb)
+    print(logits.shape)
+    print(loss)
 
 
 def get_batch(batch_size, block_size, data):
