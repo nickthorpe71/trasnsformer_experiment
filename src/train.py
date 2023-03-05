@@ -32,6 +32,9 @@ def main():
     print(logits.shape)
     print(loss)
 
+    print(decode(m.generate(torch.zeros((1, 1), dtype=torch.long),
+          max_new_tokens=100)[0].tolist()))
+
 
 def get_batch(batch_size, block_size, data):
     # generate a small batch of data from inputs x and targets y
