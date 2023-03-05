@@ -23,17 +23,27 @@ def main():
     train_data = data[:n]
     val_data = data[n:]
 
-    batch_size = 4  # how many independent sequences will we process in parallel?
+    batch_size = 32  # how many independent sequences will we process in parallel?
     block_size = 8  # what is the maximum context length for predictions?
 
-    xb, yb = get_batch(batch_size, block_size, train_data)
     m = BigramLanguageModel(len(vocab))
-    logits, loss = m(xb, yb)
-    print(logits.shape)
-    print(loss)
 
-    print(decode(m.generate(torch.zeros((1, 1), dtype=torch.long),
-          max_new_tokens=100)[0].tolist()))
+    # -- training --
+    optimizer = torch.optim.AdamW(m.parameters(), lr=1e-3)
+
+    for steps in range(10000):
+        # sample a batch of data
+        xb, yb = get_batch(batch_size, block_size, train_data)
+
+        # evaluate the loss
+        logits, loss = m(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+
+    print(loss.item())
+    print(decode(m.generate(idx=torch.zeros(
+        (1, 1), dtype=torch.long), max_new_tokens=600)[0].tolist()))
 
 
 def get_batch(batch_size, block_size, data):
