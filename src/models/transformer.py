@@ -12,8 +12,10 @@ class Block(nn.Module):
         self.self_attention = MultiHeadAttention(
             num_heads, num_embedding_dimensions, head_size, block_size)
         self.feed_forward = FeedForward(num_embedding_dimensions)
+        self.layer_norm1 = nn.LayerNorm(num_embedding_dimensions)
+        self.layer_norm2 = nn.LayerNorm(num_embedding_dimensions)
 
     def forward(self, x):
-        x = x + self.self_attention(x)
-        x = x + self.feed_forward(x)
+        x = x + self.self_attention(self.layer_norm1(x))
+        x = x + self.feed_forward(self.layer_norm2(x))
         return x

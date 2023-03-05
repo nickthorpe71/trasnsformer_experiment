@@ -19,6 +19,7 @@ class BigramLanguageModel(nn.Module):
                   num_heads=num_heads, block_size=block_size),
             Block(num_embedding_dimensions=num_embedding_dimensions,
                   num_heads=num_heads, block_size=block_size),
+            nn.LayerNorm(num_embedding_dimensions),
         )
         self.language_modeling_head = nn.Linear(
             num_embedding_dimensions, vocab_size)
