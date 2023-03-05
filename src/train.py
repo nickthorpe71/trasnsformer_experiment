@@ -21,11 +21,13 @@ def main():
     # hyper params
     batch_size = 32  # how many independent sequences will we process in parallel?
     block_size = 8  # what is the maximum context length for predictions?
-    max_iterations = 3000
-    eval_interval = 300
-    learning_rate = 1e-2
+    max_iterations = 5000
+    eval_interval = 500
+    learning_rate = 1e-3
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     eval_iterations = 200
+    num_embedding_dimensions = 32
+    num_heads = 4
     # --------------------------------------------
 
     with open('src/cc_script.txt', 'r', encoding='utf-8') as f:
@@ -46,7 +48,8 @@ def main():
     train_data = data[:n]
     val_data = data[n:]
 
-    model = BigramLanguageModel(len(vocab))
+    model = BigramLanguageModel(
+        len(vocab), num_embedding_dimensions, block_size, num_heads)
     m = model.to(device)
 
     # -- training --
@@ -70,7 +73,8 @@ def main():
         optimizer.step()
 
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
-    print(decode(m.generate(idx=context, max_new_tokens=500)[0].tolist()))
+    print(decode(m.generate(idx=context, max_new_tokens=500,
+          block_size=block_size)[0].tolist()))
 
 
 def get_batch(batch_size, block_size, data, device):
