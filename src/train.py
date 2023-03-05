@@ -1,9 +1,33 @@
 import torch
-from typing import List
+from typing import List, Dict
 from models.bigram import BigramLanguageModel
+
+# Steps to break into modules:
+# 1. Get hyper params
+# 2. Data Loader
+# 3. Get encoder and decoder
+# 4. Define model
+# 5. Define loss function
+# 6. Define optimizer
+# 7. Train model
+# 8. Evaluate model
+# 9. Save model
+
+# Other Modules:
+# Visualization
 
 
 def main():
+    # hyper params
+    batch_size = 32  # how many independent sequences will we process in parallel?
+    block_size = 8  # what is the maximum context length for predictions?
+    max_iterations = 3000
+    eval_interval = 300
+    learning_rate = 1e-2
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    eval_iterations = 200
+    # --------------------------------------------
+
     with open('src/cc_script.txt', 'r', encoding='utf-8') as f:
         text = f.read()
 
@@ -18,22 +42,26 @@ def main():
     def decode(l): return ''.join([int_to_str[i] for i in l])
 
     data = torch.tensor(encode(text), dtype=torch.long)
-
     n = int(len(data) * 0.9)
     train_data = data[:n]
     val_data = data[n:]
 
-    batch_size = 32  # how many independent sequences will we process in parallel?
-    block_size = 8  # what is the maximum context length for predictions?
-
-    m = BigramLanguageModel(len(vocab))
+    model = BigramLanguageModel(len(vocab))
+    m = model.to(device)
 
     # -- training --
     optimizer = torch.optim.AdamW(m.parameters(), lr=1e-3)
 
-    for steps in range(10000):
+    for iter in range(max_iterations):
+        # every so often, evaluate the model
+        if iter % eval_interval == 0:
+            losses = estimate_loss(m, eval_iterations, batch_size,
+                                   block_size, {'train': train_data, 'val': val_data}, device)
+            print(
+                f'iter {iter} | train loss {losses["train"]:.4f} | val loss {losses["val"]:.4f}')
+
         # sample a batch of data
-        xb, yb = get_batch(batch_size, block_size, train_data)
+        xb, yb = get_batch(batch_size, block_size, train_data, device)
 
         # evaluate the loss
         logits, loss = m(xb, yb)
@@ -41,17 +69,32 @@ def main():
         loss.backward()
         optimizer.step()
 
-    print(loss.item())
-    print(decode(m.generate(idx=torch.zeros(
-        (1, 1), dtype=torch.long), max_new_tokens=600)[0].tolist()))
+    context = torch.zeros((1, 1), dtype=torch.long, device=device)
+    print(decode(m.generate(idx=context, max_new_tokens=500)[0].tolist()))
 
 
-def get_batch(batch_size, block_size, data):
+def get_batch(batch_size, block_size, data, device):
     # generate a small batch of data from inputs x and targets y
     ix = torch.randint(len(data) - block_size, size=(batch_size,))
     x = torch.stack([data[i:i+block_size] for i in ix])
     y = torch.stack([data[i+1:i+block_size+1] for i in ix])
+    x, y = x.to(device), y.to(device)
     return x, y
+
+
+@torch.no_grad()  # don't track gradients for this function / greatly speeds up eval
+def estimate_loss(model: BigramLanguageModel, eval_iterations: int, batch_size: int, block_size: int, data: Dict[str, torch.tensor], device: str) -> float:
+    out = {}
+    model.eval()  # puts the model in eval mode
+    for split in ['train', 'val']:
+        losses = torch.zeros(eval_iterations)
+        for k in range(eval_iterations):
+            X, Y = get_batch(batch_size, block_size, data[split], device)
+            logits, loss = model(X, Y)
+            losses[k] = loss.item()
+        out[split] = losses.mean()
+    model.train()  # puts the model back in train mode
+    return out
 
 
 def get_vocab(text: str) -> List[str]:
