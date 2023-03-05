@@ -6,21 +6,15 @@ from models.transformer import Block
 
 class BigramLanguageModel(nn.Module):
 
-    def __init__(self, vocab_size: int, num_embedding_dimensions: int, block_size: int, num_heads: int):
+    def __init__(self, vocab_size: int, num_embedding_dimensions: int, block_size: int, num_heads: int, num_layers: int, dropout: float):
         super().__init__()
         self.token_embedding_table = nn.Embedding(
             vocab_size, num_embedding_dimensions)
         self.position_embedding_table = nn.Embedding(
             block_size, num_embedding_dimensions)
-        self.blocks = nn.Sequential(
-            Block(num_embedding_dimensions=num_embedding_dimensions,
-                  num_heads=num_heads, block_size=block_size),
-            Block(num_embedding_dimensions=num_embedding_dimensions,
-                  num_heads=num_heads, block_size=block_size),
-            Block(num_embedding_dimensions=num_embedding_dimensions,
-                  num_heads=num_heads, block_size=block_size),
-            nn.LayerNorm(num_embedding_dimensions),
-        )
+        self.blocks = nn.Sequential(*[Block(num_embedding_dimensions, num_heads, block_size, dropout)
+                                      for _ in range(num_layers)])
+        self.layer_norm_final = nn.LayerNorm(num_embedding_dimensions)
         self.language_modeling_head = nn.Linear(
             num_embedding_dimensions, vocab_size)
 
@@ -36,6 +30,7 @@ class BigramLanguageModel(nn.Module):
         x = token_embeddings + positional_embeddings  # (B, T, C)
         # apply one head of self attention (B, T, C)
         x = self.blocks(x)  # (B, T, C)
+        x = self.layer_norm_final(x)  # (B, T, C)
         logits = self.language_modeling_head(x)  # (B, T, vocab_size)
 
         if targets is None:

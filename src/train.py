@@ -28,6 +28,7 @@ def main():
     eval_iterations = 200
     num_embedding_dimensions = 32
     num_heads = 4
+    dropout = 0.2  # regularization technique for large models
     # --------------------------------------------
 
     with open('src/cc_script.txt', 'r', encoding='utf-8') as f:
@@ -49,7 +50,7 @@ def main():
     val_data = data[n:]
 
     model = BigramLanguageModel(
-        len(vocab), num_embedding_dimensions, block_size, num_heads)
+        len(vocab), num_embedding_dimensions, block_size, num_heads, dropout)
     m = model.to(device)
 
     # -- training --
