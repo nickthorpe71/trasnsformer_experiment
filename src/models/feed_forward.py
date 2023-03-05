@@ -4,11 +4,12 @@ import torch.nn as nn
 class FeedForward(nn.Module):
     """ A simple linear layer followed by a non-linearity """
 
-    def __init__(self, n_embed):
+    def __init__(self, num_embedding_dimensions):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embed, n_embed),
+            nn.Linear(num_embedding_dimensions, 4 * num_embedding_dimensions),
             nn.ReLU(),
+            nn.Linear(4 * num_embedding_dimensions, num_embedding_dimensions),
         )
 
     def forward(self, x):

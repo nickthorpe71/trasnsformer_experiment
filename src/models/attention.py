@@ -37,7 +37,11 @@ class MultiHeadAttention(nn.Module):
         super().__init__()
         self.heads = nn.ModuleList(
             [Head(num_embedding_dimensions, head_size, block_size) for _ in range(num_heads)])
+        self.projection = nn.Linear(
+            num_embedding_dimensions, num_embedding_dimensions)
 
     def forward(self, x):
         # dim-1 means we are concatonating over the channel dimension
-        return torch.cat([head(x) for head in self.heads], dim=-1)
+        out = torch.cat([head(x) for head in self.heads], dim=-1)
+        out = self.projection(out)
+        return out

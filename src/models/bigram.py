@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from models.attention import MultiHeadAttention
-from models.feed_forward import FeedForward
+from models.transformer import Block
 
 
 class BigramLanguageModel(nn.Module):
@@ -13,9 +12,14 @@ class BigramLanguageModel(nn.Module):
             vocab_size, num_embedding_dimensions)
         self.position_embedding_table = nn.Embedding(
             block_size, num_embedding_dimensions)
-        self.self_attention_heads = MultiHeadAttention(
-            num_heads, num_embedding_dimensions, num_embedding_dimensions // num_heads, block_size)  # ie. 4 heads of 8-dimensional self attention
-        self.feed_forward = FeedForward(num_embedding_dimensions)
+        self.blocks = nn.Sequential(
+            Block(num_embedding_dimensions=num_embedding_dimensions,
+                  num_heads=num_heads, block_size=block_size),
+            Block(num_embedding_dimensions=num_embedding_dimensions,
+                  num_heads=num_heads, block_size=block_size),
+            Block(num_embedding_dimensions=num_embedding_dimensions,
+                  num_heads=num_heads, block_size=block_size),
+        )
         self.language_modeling_head = nn.Linear(
             num_embedding_dimensions, vocab_size)
 
@@ -30,8 +34,7 @@ class BigramLanguageModel(nn.Module):
             torch.arange(T, device=idx.device))  # (T, C)
         x = token_embeddings + positional_embeddings  # (B, T, C)
         # apply one head of self attention (B, T, C)
-        x = self.self_attention_heads(x)
-        x = self.feed_forward(x)  # (B, T, C)
+        x = self.blocks(x)  # (B, T, C)
         logits = self.language_modeling_head(x)  # (B, T, vocab_size)
 
         if targets is None:
