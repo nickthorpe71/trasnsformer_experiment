@@ -19,16 +19,18 @@ from models.bigram import BigramLanguageModel
 
 def main():
     # hyper params
-    batch_size = 32  # how many independent sequences will we process in parallel?
-    block_size = 8  # what is the maximum context length for predictions?
+    batch_size = 64  # how many independent sequences will we process in parallel?
+    block_size = 256  # what is the maximum context length for predictions?
     max_iterations = 5000
     eval_interval = 500
-    learning_rate = 1e-3
+    learning_rate = 3e-4
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     eval_iterations = 200
-    num_embedding_dimensions = 32
-    num_heads = 4
+    num_embedding_dimensions = 384
+    num_heads = 6
+    num_layers = 6
     dropout = 0.2  # regularization technique for large models
+    # dropout of 0.2 means that 20% of the weights will be randomly set to 0 for every forward/backward pass
     # --------------------------------------------
 
     with open('src/cc_script.txt', 'r', encoding='utf-8') as f:
@@ -50,11 +52,11 @@ def main():
     val_data = data[n:]
 
     model = BigramLanguageModel(
-        len(vocab), num_embedding_dimensions, block_size, num_heads, dropout)
+        len(vocab), num_embedding_dimensions, block_size, num_heads, num_layers, dropout)
     m = model.to(device)
 
     # -- training --
-    optimizer = torch.optim.AdamW(m.parameters(), lr=1e-3)
+    optimizer = torch.optim.AdamW(m.parameters(), lr=learning_rate)
 
     for iter in range(max_iterations):
         # every so often, evaluate the model
