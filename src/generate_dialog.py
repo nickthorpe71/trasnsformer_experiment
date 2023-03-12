@@ -10,7 +10,7 @@ from models.bigram import BigramLanguageModel
 
 def main():
     # hyper params
-    new_dialog_length = 10000
+    new_dialog_length = 500
     block_size = 256  # what is the maximum context length for predictions?
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     num_embedding_dimensions = 384
@@ -50,17 +50,8 @@ def main():
     args = TTSettings(num_beams=5, min_length=1)
     
     # correct sentences
-    corrected_sentences = []
-    for sentence in sentences:
-        if should_skip(sentence) or len(sentence) < 5:
-            corrected_sentences.append(sentence.strip())
-            continue
-        
-        start_whitespace = re.search(r'^\s*', sentence).group()
-
-        result = happy_tt.generate_text(sentence, args=args)
-        corrected_sentences.append(start_whitespace + result.text)
-    
+    corrected_sentences = [correct_grammar(sentence, 10, happy_tt, args) for sentence in sentences]
+   
     print("Result:")
     print('\n'.join(corrected_sentences))
 
@@ -101,7 +92,21 @@ def get_dialog_blocks(dialog: str) -> List[str]:
    
 def should_skip(text: str) -> bool:
     return "]" in text or "[" in text or ":" in text or len(text) == 0
+
+
+def correct_grammar(sentence: str, num_passes: int, happy_tt, args) -> str:
+    if should_skip(sentence) or len(sentence) < 5:
+        return sentence.strip()
+    
+    start_whitespace = re.search(r'^\s*', sentence).group()
+    
+    res = sentence
+    
+    for _ in range(num_passes):
+        s = happy_tt.generate_text(res, args=args)
+        res = s.text
         
+    return start_whitespace + res
 
 
 if __name__ == '__main__':
