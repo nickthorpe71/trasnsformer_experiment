@@ -1,4 +1,5 @@
 import torch
+import os
 from typing import List, Dict
 from models.bigram import BigramLanguageModel
 
@@ -21,7 +22,7 @@ def main():
     # hyper params
     batch_size = 64  # how many independent sequences will we process in parallel?
     block_size = 256  # what is the maximum context length for predictions?
-    max_iterations = 5000
+    max_iterations = 10000
     eval_interval = 500
     learning_rate = 3e-4
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -30,6 +31,7 @@ def main():
     num_heads = 6
     num_layers = 6
     dropout = 0.2  # regularization technique for large models
+    model_path = "src/trained_models/cc_script.pt"
     # dropout of 0.2 means that 20% of the weights will be randomly set to 0 for every forward/backward pass
     # --------------------------------------------
 
@@ -50,9 +52,12 @@ def main():
     n = int(len(data) * 0.9)
     train_data = data[:n]
     val_data = data[n:]
-
+    
     model = BigramLanguageModel(
         len(vocab), num_embedding_dimensions, block_size, num_heads, num_layers, dropout)
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path))
+    
     m = model.to(device)
 
     # -- training --
@@ -78,6 +83,8 @@ def main():
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
     print(decode(m.generate(idx=context, max_new_tokens=500,
           block_size=block_size)[0].tolist()))
+    
+    torch.save(m.state_dict(), model_path)
 
 
 def get_batch(batch_size, block_size, data, device):
