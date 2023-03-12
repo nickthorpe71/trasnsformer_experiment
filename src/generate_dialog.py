@@ -43,7 +43,7 @@ def main():
     print(model_output)
     
     # get sentences from output
-    sentences = get_dialog_blocks(model_output)
+    sentences = get_sentences(model_output)
     
     # get grammar checker
     happy_tt = HappyTextToText("T5", "vennify/t5-base-grammar-correction")
